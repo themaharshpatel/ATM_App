@@ -36,7 +36,7 @@ class Repository(application: Application, private val coroutineScope: Coroutine
     }
 
 
-    suspend fun withdraw(_amount: Int): Pair<Map<Int, Int>, Int> {
+    suspend fun withdraw(_amount: Int): Result<Pair<Map<Int, Int>, Int>> {
         val availableNotes = atmDao.getATMCurrency()
         val availableNotesMap =
             transformList(availableNotes).toSortedMap(compareByDescending() { it }).toMap()
@@ -50,6 +50,8 @@ class Repository(application: Application, private val coroutineScope: Coroutine
                 put(noteValue, requiredNotes)
             }
         }
+        if (amount == _amount)
+            return Result.failure(InsufficientNotesException())
 
         coroutineScope.launch(Dispatchers.IO) {
             for (noteCount in availableNotes) {
@@ -83,7 +85,7 @@ class Repository(application: Application, private val coroutineScope: Coroutine
                 atmDao.addTransactionHistory(transactionHistoryList)
             }
         }
-        return Pair(notesUsed, _amount - amount)
+        return Result.success(Pair(notesUsed, _amount - amount))
     }
 
     private fun transformList(atmBalance: List<ATMBalance>) = buildMap {

@@ -3,6 +3,7 @@ package dev.maharshpatel.atmapp.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dev.maharshpatel.atmapp.InsufficientNotesException
 import dev.maharshpatel.atmapp.Repository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,7 @@ class ATMActivityViewModel(application: Application) : AndroidViewModel(applicat
     private val _atmEventsSharedFlow = MutableSharedFlow<ATMActivityEvents>()
     val atmEvents = _atmEventsSharedFlow.asSharedFlow()
 
-    var availableAmountAndCurrencyCount = Pair(mapOf(0 to 0), 0)
+    private var availableAmountAndCurrencyCount = Pair(mapOf(0 to 0), 0)
 
     fun getData() {
         viewModelScope.launch {
@@ -41,12 +42,15 @@ class ATMActivityViewModel(application: Application) : AndroidViewModel(applicat
 
     fun withdrawBtnClicked(amount: Int) = viewModelScope.launch {
         if (amount > availableAmountAndCurrencyCount.second) {
-            _atmEventsSharedFlow.emit(ATMActivityEvents.ShowErrorMessage("Input valid Amount"))
+            _atmEventsSharedFlow.emit(ATMActivityEvents.ShowErrorMessage("Input valid amount"))
             return@launch
         }
-        _currentTransactionStateFlow.emit(repository.withdraw(amount))
-
-
+        repository.withdraw(amount).onSuccess {
+            _currentTransactionStateFlow.emit(it)
+        }.onFailure {
+            if (it is InsufficientNotesException)
+                _atmEventsSharedFlow.emit(ATMActivityEvents.ShowErrorMessage("No notes available to handle the transaction"))
+        }
     }
 
 

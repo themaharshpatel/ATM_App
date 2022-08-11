@@ -28,6 +28,7 @@ class ATMActivity : AppCompatActivity() {
                 } catch (e: NumberFormatException) {
                     0
                 }
+                it.withdrawnTbl.removeAllViews()
                 viewModel.withdrawBtnClicked(amount)
 
             }
@@ -51,6 +52,8 @@ class ATMActivity : AppCompatActivity() {
         }
 
         collectFlowOnCreated(viewModel.currentTransactionStateFlow) { data ->
+            if (data.second == 0)
+                return@collectFlowOnCreated
             binding?.let {
                 it.withdrawnTbl.removeAllViews()
                 it.withdrawnTbl.addView(getHeadRow("Withdrawn Amount"))
